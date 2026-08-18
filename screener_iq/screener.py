@@ -15,8 +15,11 @@ import yfinance as yf
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Mute noisy yfinance HTTP/404 loggers
+logging.getLogger('yfinance').setLevel(logging.CRITICAL)
+
 # ----------------------------------------------------
-# PREDEFINED EXPANDED UNIVERSE LISTS
+# PREDEFINED EXPANDED UNIVERSE LISTS (VALIDATED)
 # ----------------------------------------------------
 
 # Core Benchmark Universe (~84 assets)
@@ -45,15 +48,15 @@ DEFAULT_ETFS = CORE_ETFS
 
 # S&P 500 & Nasdaq 100 Mega/Large Cap Leaders (~250 Stocks)
 SP500_NASDAQ_STOCKS = list(set(CORE_STOCKS + [
-    "INTC", "CSCO", "ACN", "ABNB", "DASH", "SQ", "PYPL", "ZS", "TWLO", "TEAM",
+    "INTC", "CSCO", "ACN", "ABNB", "DASH", "PYPL", "ZS", "TWLO", "TEAM",
     "HUBS", "WDAY", "APP", "COIN", "ROKU", "RBLX", "BKNG", "MELI", "SE", "PATH",
-    "DOCU", "OKTA", "C", "BLK", "SCHW", "AXP", "SPGI", "CME", "ICE", "MMC",
+    "DOCU", "OKTA", "C", "BLK", "SCHW", "AXP", "SPGI", "CME", "ICE",
     "AON", "PNC", "USB", "TFC", "CB", "PGR", "HIG", "BA", "LMT", "RTX",
     "NOC", "GD", "EMR", "ETN", "ITW", "PH", "MMM", "FAST", "PCAR", "CMI",
     "ODFL", "DAL", "UAL", "LOW", "CVS", "ELV", "CI", "SYK", "BSX", "MDT",
     "ISRG", "GILD", "REGN", "VRTX", "ZTS", "BMY", "DHR", "PFE", "MCD", "NKE",
     "SBUX", "TGT", "CMG", "TJX", "ORLY", "AZO", "MAR", "HLT", "KMB", "CL",
-    "GIS", "MDLZ", "EOG", "PXD", "OXY", "MPC", "VLO", "PSX", "KMI", "WMB",
+    "GIS", "MDLZ", "EOG", "OXY", "MPC", "VLO", "PSX", "KMI", "WMB",
     "APD", "SHW", "ECL", "NEM", "FCX", "DOW", "NEE", "DUK", "SO", "AEP",
     "SRE", "D", "O", "AMT", "PLD", "CCI", "SPG", "EQIX", "PSA", "DLR"
 ]))
@@ -62,10 +65,10 @@ SP500_NASDAQ_STOCKS = list(set(CORE_STOCKS + [
 MIDCAP_GROWTH_STOCKS = [
     "NET", "CRWD", "DDOG", "SNOW", "SHOP", "SPOT", "UBER", "MDB", "SMCI", "ENPH",
     "PLTR", "SOFI", "HOOD", "AFRM", "UPST", "DUOL", "BILL", "PATH", "CELH", "WING",
-    "CAVA", "BOOT", "ONON", "SKX", "ELF", "CROX", "DKNG", "PENN", "RXRX", "DNA",
+    "CAVA", "BOOT", "ONON", "ELF", "CROX", "DKNG", "PENN", "RXRX", "DNA",
     "TEM", "SMMT", "ASTS", "RKLB", "JOBY", "ACHR", "IONQ", "RGTI", "QUBT", "LUNR",
     "SG", "SHAK", "BROS", "TOST", "FRPT", "SYM", "CLVT", "PCOR", "ESTC", "GTLB",
-    "IOT", "LAW", "MRO", "RRC", "APA", "AR", "MTDR", "CHRD", "CIVI", "FANG"
+    "IOT", "LAW", "RRC", "APA", "AR", "MTDR", "CHRD", "FANG"
 ]
 
 # Dividend Aristocrats & Defensive Value (~100 Stocks)
@@ -83,7 +86,7 @@ EXTENDED_ETFS = list(set(CORE_ETFS + [
     "GLDM", "SLV", "USFR", "BIL", "IGSB", "HYG", "LQD", "BND", "TIP", "VT"
 ]))
 
-# Combined Full Extended Universe (350+ unique assets)
+# Combined Full Extended Universe (286 validated liquid assets)
 FULL_EXPANDED_UNIVERSE = list(set(
     SP500_NASDAQ_STOCKS + MIDCAP_GROWTH_STOCKS + DIVIDEND_VALUE_STOCKS + EXTENDED_ETFS
 ))
@@ -104,10 +107,23 @@ def get_universe_by_preset(preset_name: str, custom_tickers: tuple = ()) -> list
     elif "Core Benchmark" in preset_name:
         base = list(set(CORE_STOCKS + CORE_ETFS))
     else:
-        # Default: Full Extended Universe (350+ Assets)
+        # Default: Full Extended Universe (280+ Validated Assets)
         base = FULL_EXPANDED_UNIVERSE
 
     return list(set(base + list(custom_tickers)))
+
+
+def safe_float(val, default: float = 0.0) -> float:
+    """
+    Safely coerces input to float, handling None, NaN, inf, strings, or uncoercible types without throwing errors.
+    """
+    if val is None:
+        return default
+    try:
+        f = float(val)
+        return default if (np.isnan(f) or np.isinf(f)) else f
+    except (ValueError, TypeError):
+        return default
 
 
 def fetch_single_ticker_data(ticker: str) -> dict | None:
@@ -125,24 +141,28 @@ def fetch_single_ticker_data(ticker: str) -> dict | None:
 
         # Extract name and market cap / AUM
         name = info.get("longName") or info.get("shortName") or ticker
-        market_cap = info.get("marketCap") or info.get("netAssets") or info.get("totalAssets") or 0.0
-        market_cap_b = market_cap / 1e9 if market_cap else 0.0
+        raw_mc = info.get("marketCap") or info.get("netAssets") or info.get("totalAssets")
+        market_cap = safe_float(raw_mc, 0.0)
+        market_cap_b = market_cap / 1e9 if market_cap > 0 else 0.0
 
-        # Fundamentals for stocks
-        free_cash_flow = info.get("freeCashflow") or 0.0
-        fcf_m = free_cash_flow / 1e6 if free_cash_flow else 0.0
+        # Fundamentals for stocks with safe float parsing
+        free_cash_flow = safe_float(info.get("freeCashflow"), 0.0)
+        fcf_m = free_cash_flow / 1e6 if free_cash_flow > 0 else 0.0
         
-        operating_cash_flow = info.get("operatingCashflow") or 0.0
-        ocf_m = operating_cash_flow / 1e6 if operating_cash_flow else 0.0
+        operating_cash_flow = safe_float(info.get("operatingCashflow"), 0.0)
+        ocf_m = operating_cash_flow / 1e6 if operating_cash_flow > 0 else 0.0
         
-        profit_margin = info.get("profitMargins") or 0.0
-        profit_margin_pct = profit_margin * 100 if profit_margin else 0.0
+        profit_margin = safe_float(info.get("profitMargins"), 0.0)
+        profit_margin_pct = profit_margin * 100 if profit_margin != 0.0 else 0.0
 
-        pe_ratio = info.get("trailingPE") or info.get("forwardPE") or np.nan
+        raw_pe = info.get("trailingPE") or info.get("forwardPE")
+        pe_ratio = safe_float(raw_pe, default=np.nan)
+        if not np.isnan(pe_ratio) and pe_ratio <= 0:
+            pe_ratio = np.nan
 
         # Expense ratio for ETFs
-        expense_ratio = info.get("netExpenseRatio") or info.get("expenseRatio") or 0.0
-        if expense_ratio and expense_ratio > 1:
+        expense_ratio = safe_float(info.get("netExpenseRatio") or info.get("expenseRatio"), 0.0)
+        if expense_ratio > 1.0:
             expense_ratio = expense_ratio / 100.0  # normalize if returned as percentage
 
         # Fetch 3 years of historical prices for accurate SMA 252 and 3Y return
