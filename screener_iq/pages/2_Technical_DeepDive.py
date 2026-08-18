@@ -1,5 +1,5 @@
 """
-pages/2_Technical_DeepDive.py - Interactive Candlestick Charts & Technical Analysis for ScreenerIQ
+screener_iq/pages/2_Technical_DeepDive.py - Interactive Candlestick Charts & Technical Analysis for ScreenerIQ
 """
 
 import pandas as pd
@@ -7,8 +7,8 @@ import plotly.graph_objects as gr
 from plotly.subplots import make_subplots
 import streamlit as st
 
-from common_ui import inject_custom_css, render_shared_sidebar
-from screener import get_ticker_historical_chart_data
+from screener_iq.common_ui import inject_custom_css, render_shared_sidebar
+from screener_iq.screener import get_ticker_historical_chart_data
 
 st.set_page_config(page_title="ScreenerIQ | Technical Deep-Dive", page_icon="📈", layout="wide")
 inject_custom_css()

@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
-from screener import load_screener_dataset, filter_dataset
+from screener_iq.screener import load_screener_dataset, filter_dataset
 
 # Load environment variables
 load_dotenv()

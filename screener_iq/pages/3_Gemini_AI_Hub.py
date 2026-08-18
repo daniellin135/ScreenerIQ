@@ -1,11 +1,11 @@
 """
-pages/3_Gemini_AI_Hub.py - Google Gemini AI Qualitative Synthesis Hub for ScreenerIQ
+screener_iq/pages/3_Gemini_AI_Hub.py - Google Gemini AI Qualitative Synthesis Hub for ScreenerIQ
 """
 
 import textwrap
 import streamlit as st
-from common_ui import inject_custom_css, render_shared_sidebar
-from gemini_analyst import batch_analyze_top_assets, InvestmentAnalysis
+from screener_iq.common_ui import inject_custom_css, render_shared_sidebar
+from screener_iq.gemini_analyst import batch_analyze_top_assets, InvestmentAnalysis
 
 st.set_page_config(page_title="ScreenerIQ | Gemini AI Hub", page_icon="🤖", layout="wide")
 inject_custom_css()

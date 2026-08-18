@@ -1,16 +1,16 @@
 """
-test_screener.py - Automated Unit Tests for ScreenerIQ Data Engine & Gemini Integration
+tests/test_screener.py - Automated Unit Tests for ScreenerIQ Data Engine & Gemini Integration
 """
 
 import pytest
 import pandas as pd
-from screener import (
+from screener_iq.screener import (
     fetch_single_ticker_data,
     filter_dataset,
-    DEFAULT_STOCKS,
-    DEFAULT_ETFS
+    CORE_STOCKS,
+    CORE_ETFS
 )
-from gemini_analyst import (
+from screener_iq.gemini_analyst import (
     InvestmentAnalysis,
     generate_mock_analysis,
     analyze_asset_with_gemini

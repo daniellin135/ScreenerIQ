@@ -1,10 +1,10 @@
 """
-pages/0_Home.py - Landing Page & Summary Overview for ScreenerIQ
+screener_iq/pages/0_Home.py - Landing Page & Summary Overview for ScreenerIQ
 Displays KPI cards (Total Scanned, Matches Found, Top Pick, FCF Yield) and quick navigation cards.
 """
 
 import streamlit as st
-from common_ui import inject_custom_css, render_shared_sidebar
+from screener_iq.common_ui import inject_custom_css, render_shared_sidebar
 
 st.set_page_config(page_title="ScreenerIQ | Home", page_icon="⚡", layout="wide")
 inject_custom_css()
@@ -86,7 +86,7 @@ if not full_df.empty:
         </div>
         """, unsafe_allow_html=True)
         if st.button("Explore Data Grid →", key="btn_grid", type="primary", use_container_width=True):
-            st.switch_page("pages/1_Screener_Grid.py")
+            st.switch_page("screener_iq/pages/1_Screener_Grid.py")
 
     with c2:
         st.markdown("""
@@ -98,7 +98,7 @@ if not full_df.empty:
         </div>
         """, unsafe_allow_html=True)
         if st.button("Launch Technical Charts →", key="btn_chart", type="primary", use_container_width=True):
-            st.switch_page("pages/2_Technical_DeepDive.py")
+            st.switch_page("screener_iq/pages/2_Technical_DeepDive.py")
 
     with c3:
         st.markdown("""
@@ -110,4 +110,4 @@ if not full_df.empty:
         </div>
         """, unsafe_allow_html=True)
         if st.button("Run Gemini AI Analysis →", key="btn_ai", type="primary", use_container_width=True):
-            st.switch_page("pages/3_Gemini_AI_Hub.py")
+            st.switch_page("screener_iq/pages/3_Gemini_AI_Hub.py")

@@ -1,11 +1,11 @@
 """
-pages/1_Screener_Grid.py - Interactive Data Grid & Export Page for ScreenerIQ
+screener_iq/pages/1_Screener_Grid.py - Interactive Data Grid & Export Page for ScreenerIQ
 """
 
 import io
 import pandas as pd
 import streamlit as st
-from common_ui import inject_custom_css, render_shared_sidebar
+from screener_iq.common_ui import inject_custom_css, render_shared_sidebar
 
 st.set_page_config(page_title="ScreenerIQ | Screener Grid", page_icon="📋", layout="wide")
 inject_custom_css()
