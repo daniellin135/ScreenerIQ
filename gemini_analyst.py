@@ -170,6 +170,7 @@ Deliver a rigorous investment analysis following the requested schema:
                     response_mime_type="application/json",
                     response_schema=InvestmentAnalysis,
                     temperature=0.3,
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
                 )
             )
 

@@ -2,6 +2,7 @@
 pages/3_Gemini_AI_Hub.py - Google Gemini AI Qualitative Synthesis Hub for ScreenerIQ
 """
 
+import textwrap
 import streamlit as st
 from common_ui import inject_custom_css, render_shared_sidebar
 from gemini_analyst import batch_analyze_top_assets, InvestmentAnalysis
@@ -32,39 +33,46 @@ else:
                 top_n=top_n,
                 api_key=selected_api_key
             )
+            st.session_state["gemini_analyses"] = analyses
 
-        for item in analyses:
+    # Display cached or newly generated AI analyses
+    if "gemini_analyses" in st.session_state and st.session_state["gemini_analyses"]:
+        for item in st.session_state["gemini_analyses"]:
             score = item.sentiment_score
             if score >= 8:
-                badge_class = "badge-score-high"
+                score_color = "#4ade80"
+                score_bg = "rgba(34, 197, 94, 0.2)"
             elif score >= 5:
-                badge_class = "badge-score-med"
+                score_color = "#facc15"
+                score_bg = "rgba(234, 179, 8, 0.2)"
             else:
-                badge_class = "badge-score-low"
+                score_color = "#f87171"
+                score_bg = "rgba(239, 68, 68, 0.2)"
 
-            st.markdown(f"""
-            <div class="ai-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <div>
-                        <span style="font-size: 1.4rem; font-weight: 800; color: #f8fafc;">{item.ticker}</span>
-                        <span style="font-size: 1.1rem; color: #94a3b8; margin-left: 8px;">({item.company_name})</span>
-                    </div>
-                    <div>
-                        <span class="{badge_class}">AI Sentiment: {score}/10</span>
-                        <span class="badge-suitability" style="margin-left: 8px;">{item.suitability}</span>
-                    </div>
-                </div>
-                
-                <div style="margin-bottom: 16px;">
-                    <div style="font-weight: 700; color: #38bdf8; margin-bottom: 4px;">💡 Investment Thesis & Growth Catalysts</div>
-                    <div style="color: #cbd5e1; line-height: 1.6; font-size: 0.98rem;">{item.investment_thesis}</div>
-                </div>
-                
-                <div>
-                    <div style="font-weight: 700; color: #f87171; margin-bottom: 4px;">⚠️ Key Headwinds & Risk Factors</div>
-                    <ul style="color: #cbd5e1; margin-top: 4px; padding-left: 20px; font-size: 0.95rem;">
-                        {''.join([f'<li>{r}</li>' for r in item.risk_factors])}
-                    </ul>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            with st.container(border=True):
+                # Header row: Ticker, Company Name, Sentiment Badge, Suitability Tag
+                col_header1, col_header2 = st.columns([3, 2])
+                with col_header1:
+                    st.markdown(
+                        f"### {item.ticker} <span style='color: #94a3b8; font-size: 1.1rem; font-weight: normal;'>({item.company_name})</span>",
+                        unsafe_allow_html=True
+                    )
+                with col_header2:
+                    st.markdown(
+                        f"<div style='text-align: right; padding-top: 8px;'>"
+                        f"<span style='background: {score_bg}; color: {score_color}; border: 1px solid {score_color}; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.95rem; margin-right: 8px;'>AI Sentiment: {score}/10</span>"
+                        f"<span style='background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 600;'>{item.suitability}</span>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+
+                st.markdown("<hr style='margin: 12px 0; border-color: rgba(255,255,255,0.08);'>", unsafe_allow_html=True)
+
+                # Investment Thesis
+                st.markdown("<div style='font-weight: 700; color: #38bdf8; margin-bottom: 4px;'>💡 Investment Thesis & Growth Catalysts</div>", unsafe_allow_html=True)
+                st.markdown(f"> {item.investment_thesis}")
+
+                # Key Downside Risks
+                st.markdown("<div style='font-weight: 700; color: #f87171; margin-top: 12px; margin-bottom: 4px;'>⚠️ Key Headwinds & Risk Factors</div>", unsafe_allow_html=True)
+                for risk in item.risk_factors:
+                    st.markdown(f"- {risk}")
