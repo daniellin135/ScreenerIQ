@@ -246,6 +246,23 @@ def main():
         [t.strip().upper() for t in custom_ticker_str.split(",") if t.strip()]
     )
 
+    # Universe Preset Selector
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("#### 🌐 Target Ticker Universe")
+    universe_preset = st.sidebar.selectbox(
+        "Select Universe Preset",
+        options=[
+            "Full Extended Universe (350+ Assets)",
+            "S&P 500 & Nasdaq 100 Leaders (~250 Assets)",
+            "Mid-Cap & High Growth (~150 Assets)",
+            "Dividend & Value Aristocrats (~100 Assets)",
+            "Major ETFs Universe (~50 ETFs)",
+            "Core Benchmark (~84 Assets)"
+        ],
+        index=0,
+        help="Choose target asset universe for quantitative scanning"
+    )
+
     # Gemini API Key Input
     st.sidebar.markdown("---")
     st.sidebar.markdown("#### 🤖 Gemini AI Config")
@@ -264,8 +281,8 @@ def main():
         st.sidebar.info("💡 No Gemini API key detected. App will use deterministic qualitative fallback mode.")
 
     # Fetch and Load Dataset
-    with st.spinner("Fetching market data via multi-threaded pipeline..."):
-        full_df = load_screener_dataset(custom_tickers)
+    with st.spinner(f"Fetching market data for '{universe_preset}' via multi-threaded pipeline..."):
+        full_df = load_screener_dataset(preset_name=universe_preset, custom_tickers=custom_tickers)
 
     if full_df.empty:
         st.error("Unable to load financial market data. Please verify network connection or ticker symbols.")
