@@ -15,9 +15,13 @@ import yfinance as yf
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Predefined universe lists
-DEFAULT_STOCKS = [
-    # Tech & Growth
+# ----------------------------------------------------
+# PREDEFINED EXPANDED UNIVERSE LISTS
+# ----------------------------------------------------
+
+# Core Benchmark Universe (~84 assets)
+CORE_STOCKS = [
+    # Mega-Cap & Tech Leaders
     "NVDA", "AAPL", "MSFT", "AMZN", "GOOGL", "META", "TSLA", "AMD", "AVGO", "ORCL",
     "CRM", "ADBE", "QCOM", "PLTR", "INTU", "NOW", "AMAT", "TXN", "MU", "PANW",
     # Financials & Industrials
@@ -30,11 +34,80 @@ DEFAULT_STOCKS = [
     "NET", "CRWD", "DDOG", "SNOW", "SHOP", "SPOT", "UBER", "MDB", "SMCI", "ENPH"
 ]
 
-DEFAULT_ETFS = [
+CORE_ETFS = [
     "SPY", "QQQ", "VTI", "SCHD", "IWM", "XLK", "XLE", "XLF", "XLV", "XLI", 
     "XLY", "XLP", "XLU", "XLB", "XLC", "ARKK", "VUG", "VTV", "SMH", "DIA", 
     "AGG", "TLT", "VNQ", "GLD", "JEPI"
 ]
+
+DEFAULT_STOCKS = CORE_STOCKS
+DEFAULT_ETFS = CORE_ETFS
+
+# S&P 500 & Nasdaq 100 Mega/Large Cap Leaders (~250 Stocks)
+SP500_NASDAQ_STOCKS = list(set(CORE_STOCKS + [
+    "INTC", "CSCO", "ACN", "ABNB", "DASH", "SQ", "PYPL", "ZS", "TWLO", "TEAM",
+    "HUBS", "WDAY", "APP", "COIN", "ROKU", "RBLX", "BKNG", "MELI", "SE", "PATH",
+    "DOCU", "OKTA", "C", "BLK", "SCHW", "AXP", "SPGI", "CME", "ICE", "MMC",
+    "AON", "PNC", "USB", "TFC", "CB", "PGR", "HIG", "BA", "LMT", "RTX",
+    "NOC", "GD", "EMR", "ETN", "ITW", "PH", "MMM", "FAST", "PCAR", "CMI",
+    "ODFL", "DAL", "UAL", "LOW", "CVS", "ELV", "CI", "SYK", "BSX", "MDT",
+    "ISRG", "GILD", "REGN", "VRTX", "ZTS", "BMY", "DHR", "PFE", "MCD", "NKE",
+    "SBUX", "TGT", "CMG", "TJX", "ORLY", "AZO", "MAR", "HLT", "KMB", "CL",
+    "GIS", "MDLZ", "EOG", "PXD", "OXY", "MPC", "VLO", "PSX", "KMI", "WMB",
+    "APD", "SHW", "ECL", "NEM", "FCX", "DOW", "NEE", "DUK", "SO", "AEP",
+    "SRE", "D", "O", "AMT", "PLD", "CCI", "SPG", "EQIX", "PSA", "DLR"
+]))
+
+# Mid-Cap & High-Growth Tickers ($2B - $15B focus) (~150 Stocks)
+MIDCAP_GROWTH_STOCKS = [
+    "NET", "CRWD", "DDOG", "SNOW", "SHOP", "SPOT", "UBER", "MDB", "SMCI", "ENPH",
+    "PLTR", "SOFI", "HOOD", "AFRM", "UPST", "DUOL", "BILL", "PATH", "CELH", "WING",
+    "CAVA", "BOOT", "ONON", "SKX", "ELF", "CROX", "DKNG", "PENN", "RXRX", "DNA",
+    "TEM", "SMMT", "ASTS", "RKLB", "JOBY", "ACHR", "IONQ", "RGTI", "QUBT", "LUNR",
+    "SG", "SHAK", "BROS", "TOST", "FRPT", "SYM", "CLVT", "PCOR", "ESTC", "GTLB",
+    "IOT", "LAW", "MRO", "RRC", "APA", "AR", "MTDR", "CHRD", "CIVI", "FANG"
+]
+
+# Dividend Aristocrats & Defensive Value (~100 Stocks)
+DIVIDEND_VALUE_STOCKS = [
+    "JNJ", "PG", "KO", "PEP", "MMM", "ABBV", "T", "VZ", "MO", "PM",
+    "WMT", "COST", "MCD", "CVX", "XOM", "IBM", "CAT", "DE", "O", "MAIN",
+    "STAG", "VICI", "ADC", "WPC", "EPD", "MPLX", "ET", "PAA", "KMI", "WMB",
+    "EMR", "ITW", "SHW", "GD", "GPC", "BDX", "AOS", "LEG", "SWK", "TROW"
+]
+
+# Extended ETF Universe (~50 ETFs)
+EXTENDED_ETFS = list(set(CORE_ETFS + [
+    "JEPQ", "RSP", "SCHX", "SCHG", "SCHA", "SCHF", "IEMG", "EFA", "EEM", "IVV",
+    "VO", "VB", "VEA", "VWO", "SOXX", "XBI", "XOP", "KRE", "XHB", "XRT",
+    "GLDM", "SLV", "USFR", "BIL", "IGSB", "HYG", "LQD", "BND", "TIP", "VT"
+]))
+
+# Combined Full Extended Universe (350+ unique assets)
+FULL_EXPANDED_UNIVERSE = list(set(
+    SP500_NASDAQ_STOCKS + MIDCAP_GROWTH_STOCKS + DIVIDEND_VALUE_STOCKS + EXTENDED_ETFS
+))
+
+
+def get_universe_by_preset(preset_name: str, custom_tickers: tuple = ()) -> list[str]:
+    """
+    Returns a list of ticker symbols corresponding to the selected universe preset.
+    """
+    if "S&P 500 & Nasdaq 100" in preset_name:
+        base = list(set(SP500_NASDAQ_STOCKS + CORE_ETFS))
+    elif "Mid-Cap & High Growth" in preset_name:
+        base = list(set(MIDCAP_GROWTH_STOCKS + ["IWM", "ARKK", "SMH"]))
+    elif "Dividend & Value" in preset_name:
+        base = list(set(DIVIDEND_VALUE_STOCKS + ["SCHD", "VYM", "JEPI"]))
+    elif "Major ETFs" in preset_name:
+        base = EXTENDED_ETFS
+    elif "Core Benchmark" in preset_name:
+        base = list(set(CORE_STOCKS + CORE_ETFS))
+    else:
+        # Default: Full Extended Universe (350+ Assets)
+        base = FULL_EXPANDED_UNIVERSE
+
+    return list(set(base + list(custom_tickers)))
 
 
 def fetch_single_ticker_data(ticker: str) -> dict | None:
@@ -48,7 +121,7 @@ def fetch_single_ticker_data(ticker: str) -> dict | None:
         
         # Determine asset type
         quote_type = info.get("quoteType", "EQUITY").upper()
-        is_etf = quote_type == "ETF" or ticker in DEFAULT_ETFS
+        is_etf = quote_type == "ETF" or ticker in EXTENDED_ETFS
 
         # Extract name and market cap / AUM
         name = info.get("longName") or info.get("shortName") or ticker
@@ -148,7 +221,7 @@ def fetch_single_ticker_data(ticker: str) -> dict | None:
         return None
 
 
-def fetch_universe_batch(tickers: list[str], max_workers: int = 12) -> pd.DataFrame:
+def fetch_universe_batch(tickers: list[str], max_workers: int = 16) -> pd.DataFrame:
     """
     Fetch batch market & financial data concurrently using ThreadPoolExecutor.
     """
@@ -170,11 +243,11 @@ def fetch_universe_batch(tickers: list[str], max_workers: int = 12) -> pd.DataFr
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def load_screener_dataset(custom_tickers: tuple = ()) -> pd.DataFrame:
+def load_screener_dataset(preset_name: str = "Full Extended Universe (350+ Assets)", custom_tickers: tuple = ()) -> pd.DataFrame:
     """
-    Cached wrapper to load and compile full screener dataset for default + custom tickers.
+    Cached wrapper to load and compile screener dataset for selected universe preset + custom tickers.
     """
-    universe = list(set(DEFAULT_STOCKS + DEFAULT_ETFS + list(custom_tickers)))
+    universe = get_universe_by_preset(preset_name, custom_tickers)
     return fetch_universe_batch(universe)
 
 
