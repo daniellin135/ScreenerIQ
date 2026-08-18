@@ -400,7 +400,7 @@ def main():
                     "P/E": "{:.1f}",
                     f"{timeframe} Return %": "{:+.2f}%"
                 }, na_rep="-"),
-                use_container_width=True,
+                width="stretch",
                 height=450
             )
 
@@ -446,7 +446,7 @@ def main():
 
         chart_period = st.radio(
             "Chart Period",
-            options=["6m", "1y", "2y"],
+            options=["6mo", "1y", "2y"],
             index=1,
             horizontal=True
         )
@@ -523,7 +523,7 @@ def main():
                     plot_bgcolor='rgba(15, 23, 42, 0.5)'
                 )
 
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
                 # Ticker Stats Summary
                 meta_row = full_df[full_df["ticker"] == selected_ticker].iloc[0].to_dict()
