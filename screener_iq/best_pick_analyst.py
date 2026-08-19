@@ -177,7 +177,7 @@ def generate_best_pick_report(
 ) -> BestPickReport:
     """
     Synthesizes a deep-dive Best Pick report using Google Gemini with structured Pydantic output,
-    model selection (gemini-3.6-flash, gemini-3.7-flash, antigravity), and Google Search Grounding.
+    model selection (gemini-3.6-flash, gemini-3.7-flash), and Google Search Grounding.
     """
     key = api_key or os.getenv("GEMINI_API_KEY")
     if not key or not GENAI_AVAILABLE:
@@ -219,18 +219,14 @@ Deliver a rigorous investment dossier adhering strictly to the BestPickReport sc
     max_retries = 3
     backoff = 2
 
-    # Map model aliases if necessary
     effective_model = model_name
-    if model_name in ["antigravity", "gemini-3.7-flash"]:
-        # Fall back gracefully to gemini-3.6-flash if specific tier is restricted or use raw identifier
-        effective_model = model_name
 
     for attempt in range(max_retries):
         try:
             client = genai.Client(api_key=key)
             
             # Configure search grounding when using models
-            tools = [{"google_search": {}}] if "flash" in effective_model or "antigravity" in effective_model else []
+            tools = [{"google_search": {}}] if "flash" in effective_model else []
 
             response = client.models.generate_content(
                 model=effective_model,

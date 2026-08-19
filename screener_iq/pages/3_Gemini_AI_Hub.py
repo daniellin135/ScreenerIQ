@@ -36,10 +36,10 @@ else:
     with col_model_choice:
         selected_model = st.selectbox(
             "Gemini Model Tier",
-            options=["gemini-3.6-flash", "gemini-3.7-flash", "antigravity"],
+            options=["gemini-3.6-flash", "gemini-3.7-flash"],
             index=0,
             key="hub_model_selector",
-            help="Choose model tier: gemini-3.6-flash (Fast & Structured), gemini-3.7-flash (Advanced Reasoning), or antigravity (Flagship Tier)"
+            help="Choose model tier: gemini-3.6-flash (Fast & Structured) or gemini-3.7-flash (Advanced Reasoning)"
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
