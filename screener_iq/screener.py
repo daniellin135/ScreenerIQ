@@ -87,7 +87,36 @@ EXTENDED_ETFS = list(set(CORE_ETFS + [
     "GLDM", "SLV", "USFR", "BIL", "IGSB", "HYG", "LQD", "BND", "TIP", "VT"
 ]))
 
-# Combined Full Extended Universe (286 validated liquid assets)
+# Canadian TSX Market Leaders & Growth (150+ Validated Liquid TSX Assets)
+CANADIAN_TSX_STOCKS = [
+    # Banking & Financial Services
+    "RY.TO", "TD.TO", "BMO.TO", "BNS.TO", "CM.TO", "MFC.TO", "SLF.TO", "IAG.TO", "FFH.TO", "POW.TO",
+    "EFN.TO", "EQB.TO", "LB.TO", "GWO.TO", "X.TO", "IFC.TO", "FCR-UN.TO", "DGS.TO", "DFN.TO", "FTN.TO",
+    "BK.TO", "LBS.TO", "FFN.TO", "BND.TO", "EIF.TO", "GS.TO", "DIV.TO", "PRM.TO", "FHI.TO", "FSZ.TO", "UNC.TO",
+    
+    # Energy, Oil, Gas & Pipelines
+    "ENB.TO", "CNQ.TO", "SU.TO", "TRP.TO", "CVE.TO", "IMO.TO", "TOU.TO", "ARX.TO", "PXT.TO", "VET.TO",
+    "WCP.TO", "FRU.TO", "PSK.TO", "KEY.TO", "ALA.TO", "PPL.TO", "TPZ.TO", "BIR.TO", "HWX.TO", "TVE.TO",
+    "SPB.TO", "BTE.TO", "MTL.TO", "VLE.TO", "SGY.TO", "GTE.TO", "IPCO.TO", "CJ.TO", "PSI.TO", "PD.TO",
+    "JOY.TO", "ATH.TO", "CEU.TO", "SES.TO", "GEI.TO",
+    
+    # Mining, Precious Metals & Materials
+    "ABX.TO", "AEM.TO", "NTR.TO", "WPM.TO", "FNV.TO", "TECK-B.TO", "FM.TO", "LUG.TO", "IVN.TO", "EDV.TO",
+    "K.TO", "AGI.TO", "OR.TO", "BTO.TO", "PAAS.TO", "HBM.TO", "ERO.TO", "DPM.TO", "SEA.TO", "SKE.TO",
+    "OGC.TO", "LUN.TO", "CS.TO", "TXG.TO", "IMG.TO", "SVR.TO", "CG.TO", "EQX.TO", "ALS.TO", "CAS.TO",
+    "WTE.TO", "NWC.TO", "SVM.TO", "ELD.TO", "MGA.TO", "ARG.TO", "ARIS.TO", "GAU.TO", "FVI.TO", "GMIN.TO", "LIF.TO",
+    
+    # Technology, Software & Digital Innovation
+    "SHOP.TO", "OTEX.TO", "GIB-A.TO", "CSU.TO", "DCBO.TO", "ENGH.TO", "DSG.TO", "LSPD.TO", "TCS.TO", "DND.TO",
+    "BLDP.TO", "REAL.TO", "HUT.TO", "HIVE.TO", "XTG.TO", "SYZ.TO", "KXS.TO", "AC.TO", "DRT.TO", "TCL-A.TO",
+    
+    # Industrials, Transportation & Infrastructure
+    "CNR.TO", "CP.TO", "TFII.TO", "WCN.TO", "ATD.TO", "CAE.TO", "STN.TO", "TIH.TO", "WSP.TO", "ARE.TO",
+    "BYD.TO", "RCH.TO", "MAL.TO", "DBM.TO", "DR.TO", "RUS.TO", "NFI.TO", "FTT.TO", "SJ.TO", "BEI-UN.TO",
+    "MRE.TO", "CGX.TO", "TA.TO"
+]
+
+# Combined Full Extended Universe (350+ validated liquid assets)
 FULL_EXPANDED_UNIVERSE = list(set(
     SP500_NASDAQ_STOCKS + MIDCAP_GROWTH_STOCKS + DIVIDEND_VALUE_STOCKS + EXTENDED_ETFS
 ))
@@ -97,7 +126,9 @@ def get_universe_by_preset(preset_name: str, custom_tickers: tuple = ()) -> list
     """
     Returns a list of ticker symbols corresponding to the selected universe preset.
     """
-    if "S&P 500 & Nasdaq 100" in preset_name:
+    if "Canadian TSX" in preset_name or "Canadian Markets" in preset_name:
+        base = CANADIAN_TSX_STOCKS
+    elif "S&P 500 & Nasdaq 100" in preset_name:
         base = list(set(SP500_NASDAQ_STOCKS + CORE_ETFS))
     elif "Mid-Cap & High Growth" in preset_name:
         base = list(set(MIDCAP_GROWTH_STOCKS + ["IWM", "ARKK", "SMH"]))
@@ -108,7 +139,7 @@ def get_universe_by_preset(preset_name: str, custom_tickers: tuple = ()) -> list
     elif "Core Benchmark" in preset_name:
         base = list(set(CORE_STOCKS + CORE_ETFS))
     else:
-        # Default: Full Extended Universe (280+ Validated Assets)
+        # Default: Full Extended Universe (350+ Validated Assets)
         base = FULL_EXPANDED_UNIVERSE
 
     return list(set(base + list(custom_tickers)))

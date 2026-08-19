@@ -281,6 +281,7 @@ def render_shared_sidebar():
         "Select Universe Preset",
         options=[
             "Full Extended Universe (350+ Assets)",
+            "Canadian TSX Market Leaders (~300 Assets)",
             "S&P 500 & Nasdaq 100 Leaders (~250 Assets)",
             "Mid-Cap & High Growth (~150 Assets)",
             "Dividend & Value Aristocrats (~100 Assets)",
