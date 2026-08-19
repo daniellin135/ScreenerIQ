@@ -274,10 +274,10 @@ def render_shared_sidebar():
         help="Choose target asset universe for quantitative scanning"
     )
 
-    # Gemini API Key Input
+    # Gemini API Key Config
     st.sidebar.markdown("---")
     st.sidebar.markdown("#### 🤖 Gemini AI Config")
-    
+
     env_key = os.getenv("GEMINI_API_KEY", "")
     api_key_input = st.sidebar.text_input(
         "Google Gemini API Key",
