@@ -217,16 +217,16 @@ Deliver a rigorous investment dossier adhering strictly to the BestPickReport sc
 """
 
     max_retries = 3
-    backoff = 2
-
+    backoff = 1
     effective_model = model_name
+    use_search_tool = True
 
     for attempt in range(max_retries):
         try:
             client = genai.Client(api_key=key)
             
-            # Configure search grounding when using models
-            tools = [{"google_search": {}}] if "flash" in effective_model else []
+            # Configure search grounding if enabled for this attempt
+            tools = [{"google_search": {}}] if (use_search_tool and "flash" in effective_model) else None
 
             response = client.models.generate_content(
                 model=effective_model,
@@ -245,10 +245,19 @@ Deliver a rigorous investment dossier adhering strictly to the BestPickReport sc
                 return BestPickReport(**data)
         except Exception as e:
             err_msg = str(e).lower()
-            logger.warning(f"Gemini API attempt failed for {ticker} using model {effective_model}: {e}")
+            logger.warning(f"Gemini API attempt {attempt + 1} failed for {ticker} using model {effective_model}: {e}")
+            
+            # If search grounding failed or hit grounding quota, disable search tool and retry immediately without search
+            if use_search_tool and any(k in err_msg for k in ["429", "quota", "resource_exhausted", "google_search", "tool"]):
+                logger.info(f"Disabling Google Search Grounding tool for {ticker} retry to bypass search grounding quota limits.")
+                use_search_tool = False
+                continue
+
+            # If rate limit/capacity error occurs without search tool, fallback to mock report
             if any(k in err_msg for k in ["429", "503", "resource_exhausted", "unavailable", "rate limit", "quota"]):
-                logger.info(f"Immediate fallback to mock Best Pick report for {ticker} due to rate limit/capacity error.")
+                logger.info(f"Fallback to mock Best Pick report for {ticker} due to API rate limit/capacity error.")
                 return generate_mock_best_pick_report(enriched_data)
+
             time.sleep(backoff)
             backoff *= 2
 
