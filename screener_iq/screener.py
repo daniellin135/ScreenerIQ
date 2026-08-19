@@ -4,6 +4,7 @@ Handles market data retrieval via yfinance, multi-threaded batch execution,
 indicator calculation (SMA 252, Cash Flows, Margins, Timeframe Returns), and universe filtering.
 """
 
+from typing import List, Optional, Tuple
 import concurrent.futures
 import datetime
 import logging
@@ -277,14 +278,17 @@ def filter_dataset(
     min_market_cap: float = 2.0,
     max_market_cap: float = 200.0,
     above_sma_252: bool = True,
+    above_sma_50: bool = False,
     positive_fcf: bool = True,
     min_profit_margin: float = 0.0,
     timeframe: str = "1Y",
     min_timeframe_return: float = 0.0,
-    max_expense_ratio: float = 0.50
+    max_expense_ratio: float = 0.50,
+    custom_tickers: Optional[tuple] = None
 ) -> pd.DataFrame:
     """
     Applies dynamic quantitative filters based on user criteria.
+    Forcibly includes user-added custom_tickers so they bypass quantitative filters and remain active in the session.
     """
     if df.empty:
         return df
@@ -303,9 +307,12 @@ def filter_dataset(
         (filtered["market_cap_b"] <= max_market_cap)
     ]
 
-    # 3. Technical Filter: Price > SMA 252
+    # 3. Technical Filter: Price > SMA 252 & Price > SMA 50
     if above_sma_252:
         filtered = filtered[filtered["price"] > filtered["sma_252"]]
+
+    if above_sma_50 and "sma_50" in filtered.columns:
+        filtered = filtered[filtered["price"] > filtered["sma_50"]]
 
     # 4. Fundamental Filter: Free Cash Flow & Operating Cash Flow
     if positive_fcf:
@@ -333,6 +340,13 @@ def filter_dataset(
     col_name = tf_col_map.get(timeframe, "ret_1y")
     if col_name in filtered.columns:
         filtered = filtered[filtered[col_name] >= min_timeframe_return]
+
+    # 7. Forcibly include user-added custom tickers so they bypass filters
+    if custom_tickers and not df.empty:
+        custom_rows = df[df["ticker"].isin(custom_tickers)]
+        if not custom_rows.empty:
+            filtered = pd.concat([custom_rows, filtered], ignore_index=True)
+            filtered = filtered.drop_duplicates(subset=["ticker"]).reset_index(drop=True)
 
     return filtered.reset_index(drop=True)
 
