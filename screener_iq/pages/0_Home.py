@@ -4,7 +4,7 @@ Displays KPI cards (Total Scanned, Matches Found, Top Pick, FCF Yield) and quick
 """
 
 import streamlit as st
-from screener_iq.common_ui import inject_custom_css, render_shared_sidebar
+from screener_iq.common_ui import inject_custom_css, get_current_state
 
 st.set_page_config(page_title="ScreenerIQ | Home", page_icon="⚡", layout="wide")
 inject_custom_css()
@@ -19,8 +19,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Render Shared Sidebar
-full_df, screened_df, selected_api_key, filter_params = render_shared_sidebar()
+# Retrieve current state from session state
+full_df, screened_df, selected_api_key, filter_params = get_current_state()
 
 if not full_df.empty:
     # KPI Summary Cards
