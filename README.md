@@ -78,31 +78,6 @@ Open `http://localhost:8501` in your browser.
 
 Run the pytest test suite to verify data fetching, indicator math, and Gemini Pydantic schemas:
 ```bash
-python -m pytest tests/test_screener.py -v
+python -m pytest tests/ -v
 ```
-
----
-
-## Project Structure
-
-```
-ScreenerIQ/
-├── app.py                      # Application entrypoint launcher & navigation
-├── screener_iq/                # Main Python package
-│   ├── __init__.py
-│   ├── screener.py             # Quantitative screening engine & yfinance pipeline
-│   ├── gemini_analyst.py       # Google Gemini AI engine & Pydantic structured output
-│   ├── common_ui.py            # Shared CSS styling & sidebar filters
-│   └── pages/                  # Multi-page views
-│       ├── 0_Home.py           # Landing page & KPI overview
-│       ├── 1_Screener_Grid.py   # Screener data grid & CSV/Excel exports
-│       ├── 2_Technical_DeepDive.py # Candlestick charts & SMA overlays
-│       └── 3_Gemini_AI_Hub.py  # Gemini AI qualitative synthesis cards
-├── tests/                      # Automated unit test suite
-│   ├── __init__.py
-│   └── test_screener.py        # Pytest test suite
-├── requirements.txt            # Python dependencies
-├── .env.example                # Environment template file
-├── AGENTS.md                   # Developer & AI Agent contributor guidelines
-└── README.md                   # Project documentation
-```
+

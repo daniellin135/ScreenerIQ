@@ -85,3 +85,18 @@ else:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
+
+    # Deep Research Action
+    st.markdown("---")
+    st.markdown("##### 🤖 Launch Gemini Deep Research")
+    col_sym, col_btn = st.columns([3, 1])
+    with col_sym:
+        target_sym = st.selectbox(
+            "Select screened ticker for Gemini Deep Research Dossier & Trade Blueprint:",
+            options=screened_df["ticker"].tolist(),
+            key="grid_deep_sym"
+        )
+    with col_btn:
+        st.markdown("<div style='padding-top: 28px;'></div>", unsafe_allow_html=True)
+        if st.button("Analyze with Gemini →", type="primary", use_container_width=True):
+            st.switch_page("screener_iq/pages/3_Gemini_AI_Hub.py")

@@ -189,10 +189,11 @@ Deliver a rigorous investment analysis following the requested schema:
 def batch_analyze_top_assets(
     screened_df: pd.DataFrame,
     top_n: int = 5,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
+    model_name: str = "gemini-3.6-flash"
 ) -> List[InvestmentAnalysis]:
     """
-    Runs Gemini AI analysis on top N screened assets.
+    Runs Gemini AI analysis on top N screened assets using the selected model tier.
     """
     if screened_df.empty:
         return []
@@ -201,7 +202,7 @@ def batch_analyze_top_assets(
     results = []
 
     for asset in top_assets:
-        analysis = analyze_asset_with_gemini(asset, api_key=api_key)
+        analysis = analyze_asset_with_gemini(asset, api_key=api_key, model_name=model_name)
         results.append(analysis)
 
     return results
