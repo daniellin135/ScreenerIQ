@@ -4,7 +4,7 @@ tests/test_best_pick.py - Automated Unit Tests for Best Pick Recommendation & De
 
 import pytest
 import pandas as pd
-from screener_iq.data_enricher import enrich_ticker_data, safe_float
+from screener_iq.data_enricher import enrich_ticker_data, fetch_asset_catalyst_context, safe_float
 from screener_iq.best_pick_analyst import (
     BestPickReport,
     TradeStrategy,
@@ -13,7 +13,8 @@ from screener_iq.best_pick_analyst import (
     compute_best_pick_score,
     select_best_candidate,
     generate_mock_best_pick_report,
-    generate_best_pick_report
+    generate_best_pick_report,
+    generate_top_alpha_pick
 )
 
 
@@ -27,6 +28,37 @@ def test_data_enricher():
     assert 0 <= enriched["rsi_14"] <= 100
     assert len(enriched["fcf_quarterly_m"]) > 0
     assert len(enriched["top_institutional_holders"]) > 0
+
+
+def test_fetch_asset_catalyst_context():
+    """Test local metadata fetching for earnings calendar, institutional holders, and news headlines."""
+    meta = fetch_asset_catalyst_context("AAPL")
+    assert isinstance(meta, dict)
+    assert "earnings_calendar" in meta
+    assert "institutional_summary" in meta
+    assert "recent_headlines" in meta
+
+
+def test_generate_top_alpha_pick():
+    """Test single-call comparative Alpha Pick generation with pre-fetched metadata payload."""
+    candidates_payload = [
+        {
+            "ticker": "NVDA", "company_name": "NVIDIA Corp", "current_price": 120.0,
+            "pct_above_sma252": 25.0, "net_margin": 55.0, "ret_1y": 150.0,
+            "earnings_calendar": "Next Quarter", "institutional_summary": "High Accumulation",
+            "recent_headlines": ["NVIDIA Announces Next Gen AI Chip"]
+        },
+        {
+            "ticker": "AAPL", "company_name": "Apple Inc", "current_price": 180.0,
+            "pct_above_sma252": 10.0, "net_margin": 25.0, "ret_1y": 20.0,
+            "earnings_calendar": "Upcoming", "institutional_summary": "Institutional Core",
+            "recent_headlines": ["Apple Earnings Beat Expectations"]
+        }
+    ]
+
+    report = generate_top_alpha_pick(candidates_payload)
+    assert isinstance(report, BestPickReport)
+    assert report.ticker in ["NVDA", "AAPL"]
 
 
 def test_candidate_scoring_and_ranking():

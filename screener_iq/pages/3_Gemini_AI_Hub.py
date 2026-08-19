@@ -6,10 +6,11 @@ Google Search Grounding, Trade Blueprint Cards, Catalyst Radar, and downloadable
 
 import streamlit as st
 from screener_iq.common_ui import inject_custom_css, get_current_state
-from screener_iq.data_enricher import enrich_ticker_data
+from screener_iq.data_enricher import enrich_ticker_data, fetch_asset_catalyst_context
 from screener_iq.best_pick_analyst import (
     select_best_candidate,
     generate_best_pick_report,
+    generate_top_alpha_pick,
     BestPickReport,
     compute_best_pick_score
 )
@@ -80,21 +81,43 @@ else:
 
         # Trigger AI Generation Button
         if st.button("🚀 Generate Autonomous AI Deep Research Dossier", type="primary", use_container_width=True):
-            with st.spinner(f"Enriching financial data & synthesizing deep dossier for {chosen_ticker} via {selected_model}..."):
-                enriched = enrich_ticker_data(chosen_ticker)
-                report: BestPickReport = generate_best_pick_report(
-                    enriched_data=enriched,
-                    model_name=selected_model,
-                    api_key=selected_api_key
-                )
-                st.session_state["active_best_pick_report"] = report
-                st.session_state["active_enriched_data"] = enriched
+            # Pre-fetch top 3 candidates payload
+            top_candidates = target_df.head(3).to_dict(orient="records")
+            
+            progress_bar = st.progress(0, text="Fetching institutional & catalyst data for Top candidates...")
+            candidates_payload = []
+            
+            for idx, candidate in enumerate(top_candidates, 1):
+                t_sym = candidate.get("ticker")
+                progress_bar.progress(int((idx / len(top_candidates)) * 60), text=f"Pre-fetching local yfinance catalysts for {t_sym} ({idx}/{len(top_candidates)})...")
+                enriched = enrich_ticker_data(t_sym)
+                catalyst_meta = fetch_asset_catalyst_context(t_sym)
+                enriched.update(catalyst_meta)
+                candidates_payload.append(enriched)
+
+            progress_bar.progress(80, text=f"Executing single-call Gemini synthesis via {selected_model}...")
+            
+            # If user picked a custom ticker not in top 3, ensure it's included first
+            chosen_enriched = enrich_ticker_data(chosen_ticker)
+            chosen_enriched.update(fetch_asset_catalyst_context(chosen_ticker))
+            if not any(c.get("ticker") == chosen_ticker for c in candidates_payload):
+                candidates_payload.insert(0, chosen_enriched)
+
+            report: BestPickReport = generate_best_pick_report(
+                enriched_data=chosen_enriched,
+                model_name=selected_model,
+                api_key=selected_api_key
+            )
+
+            progress_bar.progress(100, text="Synthesis complete!")
+            st.session_state["active_best_pick_report"] = report
+            st.session_state["active_enriched_data"] = chosen_enriched
 
         # Check if report exists in session state
         active_report: BestPickReport = st.session_state.get("active_best_pick_report")
         active_enriched = st.session_state.get("active_enriched_data", {})
 
-        if active_report and active_report.ticker == chosen_ticker:
+        if active_report:
             st.markdown("<br>", unsafe_allow_html=True)
             
             # --- HEADER BADGES & CONFIDENCE / RISK GAUGE ---

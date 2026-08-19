@@ -261,5 +261,83 @@ Deliver a rigorous investment dossier adhering strictly to the BestPickReport sc
             time.sleep(backoff)
             backoff *= 2
 
-    logger.warning(f"Falling back to deterministic mock Best Pick report for {ticker}")
-    return generate_mock_best_pick_report(enriched_data)
+import random
+
+def generate_top_alpha_pick(
+    top_candidates_with_context: List[dict],
+    max_retries: int = 3,
+    api_key: Optional[str] = None,
+    model_name: str = "gemini-3.6-flash"
+) -> BestPickReport:
+    """
+    Sends the top candidate assets and their pre-fetched catalyst data to Gemini
+    in a SINGLE prompt, selecting and blue-printing the single highest-conviction 'Alpha Pick'.
+    Eliminates 429 rate limit errors by executing in 1 single API call without search tools.
+    """
+    if not top_candidates_with_context:
+        return generate_mock_best_pick_report({"ticker": "N/A", "company_name": "No Assets"})
+
+    key = api_key or os.getenv("GEMINI_API_KEY")
+    if not key or not GENAI_AVAILABLE:
+        logger.info("Using mock fallback for Alpha Pick synthesis (API key unavailable)")
+        first_candidate = top_candidates_with_context[0]
+        return generate_mock_best_pick_report(first_candidate)
+
+    prompt = f"""
+You are a Senior Portfolio Manager and Wall Street Institutional Equity Research Lead.
+Analyze the following screened candidate assets with their pre-fetched fundamental, technical, and catalyst metadata.
+
+Candidate Data Payload:
+{json.dumps(top_candidates_with_context, indent=2, default=str)}
+
+Task & Deliverables:
+1. Compare all candidates across momentum (% above 252-day SMA), profit margins, cash flow strength, upcoming earnings dates, institutional ownership, and recent headlines.
+2. Select the SINGLE highest-conviction 'Best Pick' / 'Alpha Pick' candidate.
+3. Calculate tactical entry levels, target prices (short-term 1-3M and long-term 6-12M), stop loss, and a composite risk score (1-10).
+4. Synthesize a complete structured BestPickReport conforming strictly to the response schema:
+   - ticker: Selected candidate symbol.
+   - company_name: Name of company/fund.
+   - overall_confidence_score: 1 to 100 rating.
+   - risk_score: 1 (Low) to 10 (High/Speculative).
+   - executive_summary: 2-3 detailed paragraphs analyzing competitive moat, catalysts, and financials.
+   - catalysts: List of 2-4 catalyst events with expected dates and impact.
+   - trade_strategy: Precise trade blueprint (entry range, stop loss, 1-3M target, 6-12M target, risk:reward).
+   - institutional_sentiment: Institutional accumulation breakdown and major holder overview.
+   - bull_case_drivers: 3-5 specific growth drivers.
+   - bear_case_risks: 2-4 key downside risks.
+"""
+
+    effective_model = model_name
+
+    for attempt in range(max_retries):
+        try:
+            client = genai.Client(api_key=key)
+            
+            # Pure model prompt without search tools to guarantee 0 search grounding quota usage
+            response = client.models.generate_content(
+                model=effective_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=BestPickReport,
+                    temperature=0.2,
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
+                )
+            )
+
+            if response and response.text:
+                data = json.loads(response.text)
+                return BestPickReport(**data)
+        except Exception as e:
+            err_msg = str(e).lower()
+            logger.warning(f"Alpha Pick Gemini API attempt {attempt + 1} failed using model {effective_model}: {e}")
+            if any(k in err_msg for k in ["429", "503", "resource_exhausted", "unavailable", "rate limit", "quota"]):
+                wait_time = (2 ** attempt) + random.uniform(1.0, 2.5)
+                logger.info(f"Rate limited (429/503). Retrying in {wait_time:.2f}s...")
+                time.sleep(wait_time)
+            else:
+                time.sleep(1)
+
+    logger.warning("Falling back to deterministic mock Best Pick report after max retries.")
+    first_candidate = top_candidates_with_context[0] if top_candidates_with_context else {"ticker": "NVDA"}
+    return generate_mock_best_pick_report(first_candidate)

@@ -204,3 +204,52 @@ def enrich_ticker_data(ticker: str) -> dict:
             "next_earnings_date": "Upcoming Quarter",
             "target_mean_price": 125.0
         }
+
+
+def fetch_asset_catalyst_context(ticker: str) -> dict:
+    """
+    Fetches upcoming earnings, institutional holdings, and recent headlines locally via yfinance
+    without triggering external Gemini web searches.
+    """
+    try:
+        t = yf.Ticker(ticker)
+        
+        # 1. Upcoming Earnings / Events
+        calendar = getattr(t, "calendar", None)
+        earnings_date = "N/A"
+        if isinstance(calendar, dict) and "Earnings Date" in calendar:
+            earnings_date = str(calendar["Earnings Date"])
+        elif hasattr(calendar, "to_dict"):
+            earnings_date = str(calendar.to_dict())
+        elif calendar is not None:
+            earnings_date = str(calendar)
+
+        # 2. Institutional Ownership
+        inst_holders = "N/A"
+        try:
+            major_holders = getattr(t, "major_holders", None)
+            if major_holders is not None and not major_holders.empty:
+                inst_holders = major_holders.to_dict()
+        except Exception:
+            pass
+
+        # 3. Recent News Headlines
+        news_items = []
+        try:
+            news = getattr(t, "news", []) or []
+            for item in news[:3]:
+                if isinstance(item, dict):
+                    title = item.get("title") or item.get("headline")
+                    if title:
+                        news_items.append(str(title))
+        except Exception:
+            pass
+
+        return {
+            "earnings_calendar": earnings_date,
+            "institutional_summary": str(inst_holders),
+            "recent_headlines": news_items
+        }
+    except Exception as e:
+        logger.warning(f"Metadata fetch failed for {ticker}: {e}")
+        return {"error": f"Failed to retrieve metadata: {str(e)}"}
