@@ -310,7 +310,8 @@ def render_shared_sidebar():
             positive_fcf=positive_fcf,
             min_profit_margin=min_profit_margin,
             timeframe=timeframe,
-            min_timeframe_return=min_timeframe_return
+            min_timeframe_return=min_timeframe_return,
+            custom_tickers=custom_tickers
         )
 
     filter_params = {

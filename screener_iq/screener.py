@@ -4,6 +4,7 @@ Handles market data retrieval via yfinance, multi-threaded batch execution,
 indicator calculation (SMA 252, Cash Flows, Margins, Timeframe Returns), and universe filtering.
 """
 
+from typing import List, Optional, Tuple
 import concurrent.futures
 import datetime
 import logging
@@ -281,10 +282,12 @@ def filter_dataset(
     min_profit_margin: float = 0.0,
     timeframe: str = "1Y",
     min_timeframe_return: float = 0.0,
-    max_expense_ratio: float = 0.50
+    max_expense_ratio: float = 0.50,
+    custom_tickers: Optional[tuple] = None
 ) -> pd.DataFrame:
     """
     Applies dynamic quantitative filters based on user criteria.
+    Forcibly includes user-added custom_tickers so they bypass quantitative filters and remain active in the session.
     """
     if df.empty:
         return df
@@ -333,6 +336,13 @@ def filter_dataset(
     col_name = tf_col_map.get(timeframe, "ret_1y")
     if col_name in filtered.columns:
         filtered = filtered[filtered[col_name] >= min_timeframe_return]
+
+    # 7. Forcibly include user-added custom tickers so they bypass filters
+    if custom_tickers and not df.empty:
+        custom_rows = df[df["ticker"].isin(custom_tickers)]
+        if not custom_rows.empty:
+            filtered = pd.concat([custom_rows, filtered], ignore_index=True)
+            filtered = filtered.drop_duplicates(subset=["ticker"]).reset_index(drop=True)
 
     return filtered.reset_index(drop=True)
 

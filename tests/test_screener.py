@@ -88,6 +88,33 @@ def test_filter_dataset():
     assert "WEAK" not in strong_filtered["ticker"].values
 
 
+def test_custom_tickers_force_inclusion_in_screened_dataset():
+    """Test that user-added custom tickers bypass quantitative filters and are included in screened_df."""
+    sample_data = pd.DataFrame([
+        {
+            "ticker": "MID1", "asset_type": "Stock", "price": 100.0, "sma_252": 80.0,
+            "pct_above_sma252": 25.0, "market_cap_b": 5.0, "fcf_m": 150.0,
+            "ocf_m": 200.0, "profit_margin_pct": 18.0, "expense_ratio": 0.0,
+            "ret_1y": 30.0, "ret_3m": 10.0
+        },
+        {
+            "ticker": "WEAK", "asset_type": "Stock", "price": 50.0, "sma_252": 60.0,
+            "pct_above_sma252": -16.6, "market_cap_b": 1.0, "fcf_m": -50.0,
+            "ocf_m": -20.0, "profit_margin_pct": -10.0, "expense_ratio": 0.0,
+            "ret_1y": -30.0, "ret_3m": -15.0
+        }
+    ])
+
+    # Filter out WEAK quantitatively, but forcibly include WEAK via custom_tickers=("WEAK",)
+    filtered = filter_dataset(
+        sample_data, min_market_cap=2.0, max_market_cap=10.0, above_sma_252=True, positive_fcf=True,
+        custom_tickers=("WEAK",)
+    )
+    assert len(filtered) == 2
+    assert "WEAK" in filtered["ticker"].values
+    assert "MID1" in filtered["ticker"].values
+
+
 def test_gemini_analysis_fallback():
     """Test qualitative Gemini analysis fallback generator."""
     sample_row = {
