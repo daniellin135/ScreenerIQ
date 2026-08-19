@@ -9,6 +9,8 @@ import streamlit as st
 from screener_iq.screener import (
     fetch_single_ticker_data,
     filter_dataset,
+    get_universe_by_preset,
+    CANADIAN_TSX_STOCKS,
     CORE_STOCKS,
     CORE_ETFS
 )
@@ -31,6 +33,24 @@ def test_fetch_single_stock():
     assert data["market_cap_b"] > 0
     assert data["sma_252"] > 0
     assert "ret_1y" in data
+
+
+def test_fetch_canadian_stock():
+    """Test fetching data for a liquid Canadian TSX stock symbol."""
+    data = fetch_single_ticker_data("SHOP.TO")
+    assert data is not None
+    assert data["ticker"] == "SHOP.TO"
+    assert data["price"] > 0
+    assert data["market_cap_b"] > 0
+
+
+def test_canadian_universe_preset():
+    """Test loading Canadian TSX Market Leaders universe preset."""
+    universe = get_universe_by_preset("Canadian TSX Market Leaders (~300 Assets)")
+    assert len(universe) >= 100
+    assert "SHOP.TO" in universe
+    assert "RY.TO" in universe
+    assert "ENB.TO" in universe
 
 
 def test_fetch_single_etf():
