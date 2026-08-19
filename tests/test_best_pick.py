@@ -78,7 +78,7 @@ def test_mock_best_pick_report_pydantic_schema():
 
 
 def test_best_pick_report_model_tiers():
-    """Test generating report with model tier options (gemini-3.6-flash, gemini-3.7-flash)."""
+    """Test generating report with model tier options (gemini-3.6-flash, gemini-3.7-flash, gemini-3.5-flash-lite)."""
     enriched_sample = {
         "ticker": "MSFT",
         "company_name": "Microsoft Corporation",
@@ -87,7 +87,7 @@ def test_best_pick_report_model_tiers():
         "sma_50": 410.0
     }
 
-    for model_tier in ["gemini-3.6-flash", "gemini-3.7-flash"]:
+    for model_tier in ["gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.5-flash-lite"]:
         report = generate_best_pick_report(enriched_sample, model_name=model_tier)
         assert isinstance(report, BestPickReport)
         assert report.ticker == "MSFT"
