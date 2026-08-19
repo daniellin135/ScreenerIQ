@@ -7,14 +7,14 @@ import plotly.graph_objects as gr
 from plotly.subplots import make_subplots
 import streamlit as st
 
-from screener_iq.common_ui import inject_custom_css, render_shared_sidebar
+from screener_iq.common_ui import inject_custom_css, get_current_state
 from screener_iq.screener import get_ticker_historical_chart_data
 
 st.set_page_config(page_title="ScreenerIQ | Technical Deep-Dive", page_icon="📈", layout="wide")
 inject_custom_css()
 
-# Render Shared Sidebar
-full_df, screened_df, selected_api_key, filter_params = render_shared_sidebar()
+# Retrieve current state from session state
+full_df, screened_df, selected_api_key, filter_params = get_current_state()
 
 st.subheader("📈 Interactive Technical Analysis Chart")
 st.markdown("Inspect OHLC candlesticks, 252-day SMA (12M), 50-day SMA, and volume histogram for any scanned ticker.")

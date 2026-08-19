@@ -1,6 +1,6 @@
 """
-common_ui.py - Shared UI Components & Sidebar Controls for ScreenerIQ
-Provides unified styling, shared sidebar filters, and session state management across all pages.
+common_ui.py - Shared UI Components & Persistent Sidebar Controls for ScreenerIQ
+Provides unified styling, persistent sidebar filters, and session state management across all pages.
 """
 
 import os
@@ -166,40 +166,18 @@ def inject_custom_css():
     """, unsafe_allow_html=True)
 
 
-def init_session_state_defaults():
-    """Ensures all sidebar widget keys exist in st.session_state with default values."""
-    defaults = {
-        "filter_asset_type": "Both",
-        "filter_market_cap": (2.0, 10.0),
-        "filter_above_sma_252": True,
-        "filter_positive_fcf": True,
-        "filter_min_profit_margin": 0.0,
-        "filter_timeframe": "1Y",
-        "filter_min_timeframe_return": 0.0,
-        "filter_custom_tickers": "",
-        "filter_universe_preset": "Full Extended Universe (350+ Assets)",
-        "filter_gemini_key": os.getenv("GEMINI_API_KEY", "")
-    }
-    for key, val in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = val
-
-
 def render_shared_sidebar():
     """
-    Renders the unified quantitative controls sidebar across all multi-page views,
-    preserving filter states persistently in st.session_state when switching pages.
-    Returns:
-        tuple: (full_df, screened_df, selected_api_key, filter_params)
+    Renders the quantitative controls sidebar at root app level, ensuring persistent widget state.
+    Calculates filtered dataset and stores results in st.session_state.
     """
-    init_session_state_defaults()
-
     st.sidebar.markdown("### ⚙️ Screener Controls")
     
     asset_type = st.sidebar.radio(
         "Asset Type Filter",
         options=["Both", "Stocks", "ETFs"],
-        key="filter_asset_type",
+        index=0,
+        key="sb_asset_type",
         help="Select universe type: Stocks, ETFs, or combined"
     )
 
@@ -210,8 +188,9 @@ def render_shared_sidebar():
         "Market Cap ($ Billion)",
         min_value=0.0,
         max_value=300.0,
+        value=(2.0, 10.0),
         step=1.0,
-        key="filter_market_cap",
+        key="sb_market_cap",
         help="Default range ($2B - $10B) targets Mid-Cap growth assets"
     )
     min_market_cap, max_market_cap = market_cap_range
@@ -221,13 +200,15 @@ def render_shared_sidebar():
     
     above_sma_252 = st.sidebar.toggle(
         "Price > 12-Month SMA (SMA 252)",
-        key="filter_above_sma_252",
+        value=True,
+        key="sb_above_sma_252",
         help="Filter assets currently trading above their 252-day simple moving average"
     )
     
     positive_fcf = st.sidebar.toggle(
         "Positive Free & Operating Cash Flow",
-        key="filter_positive_fcf",
+        value=True,
+        key="sb_positive_fcf",
         help="Require Free Cash Flow > 0 and Operating Cash Flow > 0 for stocks (or Low Expense Ratio for ETFs)"
     )
 
@@ -235,8 +216,9 @@ def render_shared_sidebar():
         "Min Net Profit Margin (%)",
         min_value=-20.0,
         max_value=40.0,
+        value=0.0,
         step=2.0,
-        key="filter_min_profit_margin",
+        key="sb_min_profit_margin",
         help="Minimum required profit margin for stocks"
     )
 
@@ -246,7 +228,8 @@ def render_shared_sidebar():
     timeframe = st.sidebar.selectbox(
         "Historical Timeframe",
         options=["1M", "3M", "6M", "1Y", "3Y", "YTD"],
-        key="filter_timeframe",
+        index=3,
+        key="sb_timeframe",
         help="Rolling timeframe for cumulative return calculation"
     )
     
@@ -254,8 +237,9 @@ def render_shared_sidebar():
         f"Min Cumulative Return ({timeframe}) %",
         min_value=-50.0,
         max_value=100.0,
+        value=0.0,
         step=5.0,
-        key="filter_min_timeframe_return",
+        key="sb_min_timeframe_return",
         help=f"Filter assets with cumulative return >= threshold over selected {timeframe} timeframe"
     )
 
@@ -263,8 +247,9 @@ def render_shared_sidebar():
     st.sidebar.markdown("---")
     custom_ticker_str = st.sidebar.text_input(
         "Add Custom Tickers (comma separated)",
+        value="",
         placeholder="e.g. PLTR, HOOD, SOFI",
-        key="filter_custom_tickers",
+        key="sb_custom_tickers",
         help="Add additional tickers to scan"
     )
     custom_tickers = tuple(
@@ -284,7 +269,8 @@ def render_shared_sidebar():
             "Major ETFs Universe (~50 ETFs)",
             "Core Benchmark (~84 Assets)"
         ],
-        key="filter_universe_preset",
+        index=0,
+        key="sb_universe_preset",
         help="Choose target asset universe for quantitative scanning"
     )
 
@@ -292,10 +278,12 @@ def render_shared_sidebar():
     st.sidebar.markdown("---")
     st.sidebar.markdown("#### 🤖 Gemini AI Config")
     
+    env_key = os.getenv("GEMINI_API_KEY", "")
     api_key_input = st.sidebar.text_input(
         "Google Gemini API Key",
+        value=env_key,
         type="password",
-        key="filter_gemini_key",
+        key="sb_gemini_key",
         help="Enter your Gemini API key or set GEMINI_API_KEY in .env file"
     )
     
@@ -310,20 +298,20 @@ def render_shared_sidebar():
 
     if full_df.empty:
         st.error("Unable to load financial market data. Please verify network connection or ticker symbols.")
-        return pd.DataFrame(), pd.DataFrame(), selected_api_key, {}
-
-    # Apply Filters
-    screened_df = filter_dataset(
-        df=full_df,
-        asset_type=asset_type,
-        min_market_cap=min_market_cap,
-        max_market_cap=max_market_cap,
-        above_sma_252=above_sma_252,
-        positive_fcf=positive_fcf,
-        min_profit_margin=min_profit_margin,
-        timeframe=timeframe,
-        min_timeframe_return=min_timeframe_return
-    )
+        screened_df = pd.DataFrame()
+    else:
+        # Apply Filters
+        screened_df = filter_dataset(
+            df=full_df,
+            asset_type=asset_type,
+            min_market_cap=min_market_cap,
+            max_market_cap=max_market_cap,
+            above_sma_252=above_sma_252,
+            positive_fcf=positive_fcf,
+            min_profit_margin=min_profit_margin,
+            timeframe=timeframe,
+            min_timeframe_return=min_timeframe_return
+        )
 
     filter_params = {
         "asset_type": asset_type,
@@ -337,4 +325,21 @@ def render_shared_sidebar():
         "universe_preset": universe_preset
     }
 
+    # Store in session state for child pages
+    st.session_state["state_full_df"] = full_df
+    st.session_state["state_screened_df"] = screened_df
+    st.session_state["state_api_key"] = selected_api_key
+    st.session_state["state_filter_params"] = filter_params
+
+    return full_df, screened_df, selected_api_key, filter_params
+
+
+def get_current_state():
+    """
+    Retrieves current dataset and filter state for child multi-page views.
+    """
+    full_df = st.session_state.get("state_full_df", pd.DataFrame())
+    screened_df = st.session_state.get("state_screened_df", pd.DataFrame())
+    selected_api_key = st.session_state.get("state_api_key", None)
+    filter_params = st.session_state.get("state_filter_params", {})
     return full_df, screened_df, selected_api_key, filter_params

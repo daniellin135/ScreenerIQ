@@ -4,14 +4,14 @@ screener_iq/pages/3_Gemini_AI_Hub.py - Google Gemini AI Qualitative Synthesis Hu
 
 import textwrap
 import streamlit as st
-from screener_iq.common_ui import inject_custom_css, render_shared_sidebar
+from screener_iq.common_ui import inject_custom_css, get_current_state
 from screener_iq.gemini_analyst import batch_analyze_top_assets, InvestmentAnalysis
 
 st.set_page_config(page_title="ScreenerIQ | Gemini AI Hub", page_icon="🤖", layout="wide")
 inject_custom_css()
 
-# Render Shared Sidebar
-full_df, screened_df, selected_api_key, filter_params = render_shared_sidebar()
+# Retrieve current state from session state
+full_df, screened_df, selected_api_key, filter_params = get_current_state()
 
 st.subheader("🤖 Google Gemini AI qualitative thesis & risk breakdown")
 st.markdown(

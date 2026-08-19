@@ -5,13 +5,13 @@ screener_iq/pages/1_Screener_Grid.py - Interactive Data Grid & Export Page for S
 import io
 import pandas as pd
 import streamlit as st
-from screener_iq.common_ui import inject_custom_css, render_shared_sidebar
+from screener_iq.common_ui import inject_custom_css, get_current_state
 
 st.set_page_config(page_title="ScreenerIQ | Screener Grid", page_icon="📋", layout="wide")
 inject_custom_css()
 
-# Render Shared Sidebar
-full_df, screened_df, selected_api_key, filter_params = render_shared_sidebar()
+# Retrieve current state from session state
+full_df, screened_df, selected_api_key, filter_params = get_current_state()
 
 st.subheader("📋 Filtered Screener Data Grid")
 st.markdown("Dynamic data table featuring current market parameters and quantitative indicators.")

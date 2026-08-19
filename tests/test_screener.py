@@ -4,6 +4,8 @@ tests/test_screener.py - Automated Unit Tests for ScreenerIQ Data Engine & Gemin
 
 import pytest
 import pandas as pd
+import streamlit as st
+
 from screener_iq.screener import (
     fetch_single_ticker_data,
     filter_dataset,
@@ -15,6 +17,7 @@ from screener_iq.gemini_analyst import (
     generate_mock_analysis,
     analyze_asset_with_gemini
 )
+from screener_iq.common_ui import get_current_state
 
 
 def test_fetch_single_stock():
@@ -99,3 +102,43 @@ def test_gemini_analysis_fallback():
     assert len(result.investment_thesis) > 20
     assert len(result.risk_factors) >= 2
     assert result.suitability != ""
+
+
+def test_sidebar_filter_state_persistence():
+    """Test that user-configured quantitative filters persist across page views."""
+    custom_params = {
+        "asset_type": "Stocks",
+        "min_market_cap": 10.0,
+        "max_market_cap": 250.0,
+        "above_sma_252": True,
+        "positive_fcf": True,
+        "min_profit_margin": 15.0,
+        "timeframe": "3M",
+        "min_timeframe_return": 10.0,
+        "universe_preset": "S&P 500 & Nasdaq 100 Leaders (~250 Assets)"
+    }
+    
+    sample_full_df = pd.DataFrame([{"ticker": "NVDA", "price": 120.0, "market_cap_b": 2800.0}])
+    sample_screened_df = pd.DataFrame([{"ticker": "NVDA", "price": 120.0, "market_cap_b": 2800.0}])
+    
+    # Store in session state as common_ui root level does
+    st.session_state["state_full_df"] = sample_full_df
+    st.session_state["state_screened_df"] = sample_screened_df
+    st.session_state["state_api_key"] = "test_key_123"
+    st.session_state["state_filter_params"] = custom_params
+
+    # Simulate child page 1 reading state
+    full1, screened1, key1, params1 = get_current_state()
+    assert params1["asset_type"] == "Stocks"
+    assert params1["min_market_cap"] == 10.0
+    assert params1["max_market_cap"] == 250.0
+    assert params1["timeframe"] == "3M"
+    assert params1["universe_preset"] == "S&P 500 & Nasdaq 100 Leaders (~250 Assets)"
+    assert key1 == "test_key_123"
+    assert len(screened1) == 1
+
+    # Simulate navigating to child page 2 reading state
+    full2, screened2, key2, params2 = get_current_state()
+    assert params2 == custom_params
+    assert key2 == "test_key_123"
+    assert len(screened2) == 1
