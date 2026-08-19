@@ -261,9 +261,14 @@ Generated via Google Gemini ({selected_model})
                 )
                 st.session_state["gemini_analyses"] = analyses
 
-        # Display cached or newly generated AI analyses
+        # Display cached or newly generated AI analyses sorted by AI sentiment (highest first)
         if "gemini_analyses" in st.session_state and st.session_state["gemini_analyses"]:
-            for item in st.session_state["gemini_analyses"]:
+            sorted_analyses = sorted(
+                st.session_state["gemini_analyses"],
+                key=lambda item: item.sentiment_score,
+                reverse=True
+            )
+            for item in sorted_analyses:
                 score = item.sentiment_score
                 score_color = "#4ade80" if score >= 8 else "#facc15" if score >= 5 else "#f87171"
                 score_bg = "rgba(34, 197, 94, 0.2)" if score >= 8 else "rgba(234, 179, 8, 0.2)" if score >= 5 else "rgba(239, 68, 68, 0.2)"
