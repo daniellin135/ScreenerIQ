@@ -184,16 +184,27 @@ def render_shared_sidebar():
     st.sidebar.markdown("---")
     st.sidebar.markdown("#### 📊 Market Cap / AUM Filter")
     
-    market_cap_range = st.sidebar.slider(
-        "Market Cap ($ Billion)",
-        min_value=0.0,
-        max_value=300.0,
-        value=(2.0, 10.0),
-        step=1.0,
-        key="sb_market_cap",
-        help="Default range ($2B - $10B) targets Mid-Cap growth assets"
-    )
-    min_market_cap, max_market_cap = market_cap_range
+    col_mc1, col_mc2 = st.sidebar.columns(2)
+    with col_mc1:
+        min_market_cap = st.number_input(
+            "Min Cap ($B)",
+            min_value=0.0,
+            max_value=5000.0,
+            value=2.0,
+            step=0.5,
+            key="sb_min_mc_num",
+            help="Minimum Market Cap in $ Billions (manual entry allowed)"
+        )
+    with col_mc2:
+        max_market_cap = st.number_input(
+            "Max Cap ($B)",
+            min_value=0.0,
+            max_value=5000.0,
+            value=700.0,
+            step=5.0,
+            key="sb_max_mc_num",
+            help="Maximum Market Cap in $ Billions (manual entry allowed)"
+        )
 
     st.sidebar.markdown("---")
     st.sidebar.markdown("#### 📈 Technical & Fundamental Filters")
@@ -203,6 +214,13 @@ def render_shared_sidebar():
         value=True,
         key="sb_above_sma_252",
         help="Filter assets currently trading above their 252-day simple moving average"
+    )
+
+    above_sma_50 = st.sidebar.toggle(
+        "Price > 50-Day SMA (SMA 50)",
+        value=False,
+        key="sb_above_sma_50",
+        help="Filter assets currently trading above their 50-day simple moving average (~2.5 months)"
     )
     
     positive_fcf = st.sidebar.toggle(
@@ -307,6 +325,7 @@ def render_shared_sidebar():
             min_market_cap=min_market_cap,
             max_market_cap=max_market_cap,
             above_sma_252=above_sma_252,
+            above_sma_50=above_sma_50,
             positive_fcf=positive_fcf,
             min_profit_margin=min_profit_margin,
             timeframe=timeframe,
@@ -319,6 +338,7 @@ def render_shared_sidebar():
         "min_market_cap": min_market_cap,
         "max_market_cap": max_market_cap,
         "above_sma_252": above_sma_252,
+        "above_sma_50": above_sma_50,
         "positive_fcf": positive_fcf,
         "min_profit_margin": min_profit_margin,
         "timeframe": timeframe,

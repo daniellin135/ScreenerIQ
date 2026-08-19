@@ -278,6 +278,7 @@ def filter_dataset(
     min_market_cap: float = 2.0,
     max_market_cap: float = 200.0,
     above_sma_252: bool = True,
+    above_sma_50: bool = False,
     positive_fcf: bool = True,
     min_profit_margin: float = 0.0,
     timeframe: str = "1Y",
@@ -306,9 +307,12 @@ def filter_dataset(
         (filtered["market_cap_b"] <= max_market_cap)
     ]
 
-    # 3. Technical Filter: Price > SMA 252
+    # 3. Technical Filter: Price > SMA 252 & Price > SMA 50
     if above_sma_252:
         filtered = filtered[filtered["price"] > filtered["sma_252"]]
+
+    if above_sma_50 and "sma_50" in filtered.columns:
+        filtered = filtered[filtered["price"] > filtered["sma_50"]]
 
     # 4. Fundamental Filter: Free Cash Flow & Operating Cash Flow
     if positive_fcf:
