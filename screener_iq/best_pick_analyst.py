@@ -244,7 +244,11 @@ Deliver a rigorous investment dossier adhering strictly to the BestPickReport sc
                 data = json.loads(response.text)
                 return BestPickReport(**data)
         except Exception as e:
-            logger.warning(f"Gemini API attempt {attempt + 1} failed for {ticker} using model {effective_model}: {e}")
+            err_msg = str(e).lower()
+            logger.warning(f"Gemini API attempt failed for {ticker} using model {effective_model}: {e}")
+            if any(k in err_msg for k in ["429", "503", "resource_exhausted", "unavailable", "rate limit", "quota"]):
+                logger.info(f"Immediate fallback to mock Best Pick report for {ticker} due to rate limit/capacity error.")
+                return generate_mock_best_pick_report(enriched_data)
             time.sleep(backoff)
             backoff *= 2
 

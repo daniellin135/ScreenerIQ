@@ -2,6 +2,7 @@
 gemini_analyst.py - Gemini AI Integration Engine for ScreenerIQ
 Integrated with official google-genai SDK using structured Pydantic outputs.
 Provides quantitative-to-qualitative analysis, investment theses, and risk profiling.
+Consolidates multi-asset queries into a single API call to save bandwidth and rate limits.
 """
 
 import json
@@ -41,6 +42,13 @@ class InvestmentAnalysis(BaseModel):
     suitability: str = Field(
         ...,
         description="Target investor profile (e.g., 'Aggressive Growth', 'Core Value', 'Dividend & Defensive', 'Tech Momentum')."
+    )
+
+
+class MultiAssetAnalysisResponse(BaseModel):
+    analyses: List[InvestmentAnalysis] = Field(
+        ...,
+        description="List of structured qualitative investment analyses for each candidate asset."
     )
 
 
@@ -112,15 +120,13 @@ def analyze_asset_with_gemini(
     model_name: str = "gemini-3.6-flash"
 ) -> InvestmentAnalysis:
     """
-    Calls Google Gemini API using structured Pydantic output.
-    Includes rate limit retry logic and fallback to mock analysis if key is invalid/absent.
+    Calls Google Gemini API for a single asset using structured Pydantic output.
     """
     key = api_key or os.getenv("GEMINI_API_KEY")
     if not key or not GENAI_AVAILABLE:
         logger.info(f"Using mock fallback analysis for {row.get('ticker')} (No valid Gemini API key or SDK)")
         return generate_mock_analysis(row)
 
-    # Construct quantitative context prompt
     ticker = row.get("ticker", "N/A")
     name = row.get("name", ticker)
     price = row.get("price", 0.0)
@@ -162,7 +168,6 @@ Deliver a rigorous investment analysis following the requested schema:
         try:
             client = genai.Client(api_key=key)
             
-            # Use generate_content with structured output configuration
             response = client.models.generate_content(
                 model=model_name,
                 contents=prompt,
@@ -178,7 +183,11 @@ Deliver a rigorous investment analysis following the requested schema:
                 data = json.loads(response.text)
                 return InvestmentAnalysis(**data)
         except Exception as e:
-            logger.warning(f"Gemini API call attempt {attempt + 1} failed for {ticker}: {e}")
+            err_msg = str(e).lower()
+            logger.warning(f"Gemini API call failed for {ticker} using {model_name}: {e}")
+            if any(k in err_msg for k in ["429", "503", "resource_exhausted", "unavailable", "rate limit", "quota"]):
+                logger.info(f"Immediate fallback to mock synthesis for {ticker} due to rate limit/capacity error.")
+                return generate_mock_analysis(row)
             time.sleep(backoff)
             backoff *= 2
 
@@ -193,16 +202,83 @@ def batch_analyze_top_assets(
     model_name: str = "gemini-3.6-flash"
 ) -> List[InvestmentAnalysis]:
     """
-    Runs Gemini AI analysis on top N screened assets using the selected model tier.
+    Runs Gemini AI analysis on top N screened assets using a SINGLE consolidated API request
+    to save API bandwidth and stay strictly within free-tier Rate Limits (RPM).
     """
     if screened_df.empty:
         return []
 
     top_assets = screened_df.head(top_n).to_dict(orient="records")
-    results = []
+    key = api_key or os.getenv("GEMINI_API_KEY")
 
-    for asset in top_assets:
-        analysis = analyze_asset_with_gemini(asset, api_key=api_key, model_name=model_name)
-        results.append(analysis)
+    # If key missing or SDK unavailable, return deterministic mock analysis for each
+    if not key or not GENAI_AVAILABLE:
+        logger.info(f"Using mock fallback batch analysis for top {len(top_assets)} assets (No valid Gemini API key)")
+        return [generate_mock_analysis(asset) for asset in top_assets]
 
-    return results
+    # Build consolidated multi-asset payload prompt
+    asset_summaries = []
+    for idx, row in enumerate(top_assets, 1):
+        asset_summaries.append(
+            f"Asset #{idx}: {row.get('name', row.get('ticker'))} ({row.get('ticker')})\n"
+            f"- Asset Type: {row.get('asset_type', 'Stock')}\n"
+            f"- Price: ${row.get('price', 0.0):.2f}\n"
+            f"- Market Cap: ${row.get('market_cap_b', 0.0):.2f}B\n"
+            f"- Technical Position: {row.get('pct_above_sma252', 0.0):.2f}% above 252-day SMA\n"
+            f"- Free Cash Flow: ${row.get('fcf_m', 0.0):.2f}M\n"
+            f"- Profit Margin: {row.get('profit_margin_pct', 0.0):.2f}%\n"
+            f"- P/E Ratio: {row.get('pe_ratio', 'N/A')}\n"
+            f"- 1Y Return: {row.get('ret_1y', 0.0):.2f}% | 3M Return: {row.get('ret_3m', 0.0):.2f}%\n"
+        )
+
+    combined_prompt = f"""
+You are a senior institutional equity research analyst evaluating a portfolio of candidate assets.
+Review the following {len(top_assets)} candidate assets and provide a structured investment synthesis for EACH asset:
+
+{'='*40}
+{chr(10).join(asset_summaries)}
+{'='*40}
+
+For EACH asset, deliver a rigorous InvestmentAnalysis complying strictly with the requested schema:
+1. ticker: Symbol of the asset.
+2. company_name: Name of the company/fund.
+3. sentiment_score: 1 to 10 rating based on financial strength and technical momentum.
+4. investment_thesis: Exactly 2 to 3 concise sentences detailing core growth catalysts.
+5. risk_factors: 2 to 4 bullet points detailing specific downside risks.
+6. suitability: Recommended investor profile.
+"""
+
+    max_retries = 3
+    backoff = 2
+    effective_model = model_name
+
+    for attempt in range(max_retries):
+        try:
+            client = genai.Client(api_key=key)
+            response = client.models.generate_content(
+                model=effective_model,
+                contents=combined_prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=MultiAssetAnalysisResponse,
+                    temperature=0.3,
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
+                )
+            )
+
+            if response and response.text:
+                data = json.loads(response.text)
+                parsed = MultiAssetAnalysisResponse(**data)
+                if parsed.analyses and len(parsed.analyses) > 0:
+                    return parsed.analyses
+        except Exception as e:
+            err_msg = str(e).lower()
+            logger.warning(f"Batch Gemini API attempt failed using {effective_model}: {e}")
+            if any(k in err_msg for k in ["429", "503", "resource_exhausted", "unavailable", "rate limit", "quota"]):
+                logger.info(f"Immediate fallback to mock batch synthesis due to rate limit/capacity error.")
+                return [generate_mock_analysis(asset) for asset in top_assets]
+            time.sleep(backoff)
+            backoff *= 2
+
+    logger.error("All batch Gemini API attempts failed. Falling back to deterministic synthesis.")
+    return [generate_mock_analysis(asset) for asset in top_assets]

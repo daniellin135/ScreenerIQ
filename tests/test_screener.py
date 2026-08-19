@@ -15,7 +15,8 @@ from screener_iq.screener import (
 from screener_iq.gemini_analyst import (
     InvestmentAnalysis,
     generate_mock_analysis,
-    analyze_asset_with_gemini
+    analyze_asset_with_gemini,
+    batch_analyze_top_assets
 )
 from screener_iq.common_ui import get_current_state
 
@@ -102,6 +103,20 @@ def test_gemini_analysis_fallback():
     assert len(result.investment_thesis) > 20
     assert len(result.risk_factors) >= 2
     assert result.suitability != ""
+
+
+def test_batch_analyze_top_assets_single_request():
+    """Test batch qualitative analysis generator returns structured list for multi-asset queries."""
+    sample_df = pd.DataFrame([
+        {"ticker": "NVDA", "name": "NVIDIA Corp", "price": 120.0, "pct_above_sma252": 25.0, "profit_margin_pct": 55.0, "ret_1y": 150.0, "asset_type": "Stock", "fcf_m": 25000.0},
+        {"ticker": "AAPL", "name": "Apple Inc", "price": 180.0, "pct_above_sma252": 10.0, "profit_margin_pct": 25.0, "ret_1y": 20.0, "asset_type": "Stock", "fcf_m": 100000.0}
+    ])
+
+    results = batch_analyze_top_assets(sample_df, top_n=2)
+    assert isinstance(results, list)
+    assert len(results) == 2
+    assert results[0].ticker in ["NVDA", "AAPL"]
+    assert results[1].ticker in ["NVDA", "AAPL"]
 
 
 def test_sidebar_filter_state_persistence():
